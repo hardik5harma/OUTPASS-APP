@@ -1,0 +1,50 @@
+{% extends "base.html" %}
+{% block content %}
+<h2>Student Dashboard</h2>
+<div class="card">
+    <div class="card-body">
+        <h5 class="card-title">New Outpass Request</h5>
+        <form method="POST" action="{{ url_for('request_outpass') }}">
+            <div class="mb-3">
+                <label>Reason</label>
+                <textarea class="form-control" name="reason" required></textarea>
+            </div>
+            <div class="mb-3">
+                <label>From Date/Time</label>
+                <input type="datetime-local" class="form-control" name="from_date" required>
+            </div>
+            <div class="mb-3">
+                <label>To Date/Time</label>
+                <input type="datetime-local" class="form-control" name="to_date" required>
+            </div>
+            <button type="submit" class="btn btn-primary">Submit Request</button>
+        </form>
+    </div>
+</div>
+
+<h4 class="mt-4">Your Outpasses</h4>
+<table class="table">
+    <thead>
+        <tr>
+            <th>ID</th>
+            <th>Reason</th>
+            <th>Status</th>
+            <th>QR Code</th>
+        </tr>
+    </thead>
+    <tbody>
+        {% for op in outpasses %}
+        <tr>
+            <td>{{ op.id }}</td>
+            <td>{{ op.reason }}</td>
+            <td>{{ op.status }}</td>
+            <td>
+                {% if op.qr_code %}
+                <img src="{{ url_for('static', filename=op.qr_code) }}" width="100">
+                {% endif %}
+            </td>
+        </tr>
+        {% endfor %}
+    </tbody>
+</table>
+{% endblock %}

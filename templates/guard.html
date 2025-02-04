@@ -1,0 +1,22 @@
+{% extends "base.html" %}
+{% block content %}
+<h2>Guard Dashboard</h2>
+<form method="POST">
+    <div class="mb-3">
+        <label>Enter QR Code Data</label>
+        <input type="text" class="form-control" name="qr_data" 
+               placeholder="OPID:123" required>
+    </div>
+    <button type="submit" class="btn btn-primary">Verify</button>
+</form>
+
+{% if valid is not none %}
+    <div class="mt-4 alert alert-{{ 'success' if valid else 'danger' }}">
+        {% if valid %}
+            Valid Outpass
+        {% else %}
+            Invalid Outpass
+        {% endif %}
+    </div>
+{% endif %}
+{% endblock %}
