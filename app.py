@@ -137,19 +137,66 @@ def guard_dashboard():
     if current_user.role != 'guard':
         return redirect(url_for('login'))
     
+    error = None
     valid = None
     outpass = None
     
     if request.method == 'POST':
-        qr_data = request.form['qr_data']
-        try:
-            op_id = int(qr_data.split(':')[-1].strip())
-            outpass = Outpass.query.get(op_id)
-            valid = outpass is not None and outpass.status == 'approved'
-        except (ValueError, IndexError):
-            valid = False
+        # Handle QR Code File Upload
+        if 'qrcode_file' in request.files:
+            file = request.files['qrcode_file']
+            if file.filename != '':
+                try:
+                    # Call QR Code API
+                    api_url = "http://api.qrserver.com/v1/read-qr-code/"
+                    files = {'file': (file.filename, file.stream, file.mimetype)}
+                    response = requests.post(api_url, files=files)
+                    response.raise_for_status()
+                    
+                    # Parse response
+                    data = response.json()
+                    if data[0]['symbol'][0]['data']:
+                        qr_data = data[0]['symbol'][0]['data']
+                        return process_qr_data(qr_data)
+                    else:
+                        error = data[0]['symbol'][0]['error']
+                except Exception as e:
+                    error = f"API Error: {str(e)}"
+        
+        # Handle URL Input
+        elif 'qrcode_url' in request.form:
+            qrcode_url = request.form['qrcode_url']
+            try:
+                encoded_url = quote(qrcode_url, safe='')
+                api_url = f"http://api.qrserver.com/v1/read-qr-code/?fileurl={encoded_url}"
+                response = requests.get(api_url)
+                response.raise_for_status()
+                
+                data = response.json()
+                if data[0]['symbol'][0]['data']:
+                    qr_data = data[0]['symbol'][0]['data']
+                    return process_qr_data(qr_data)
+                else:
+                    error = data[0]['symbol'][0]['error']
+            except Exception as e:
+                error = f"API Error: {str(e)}"
     
-    return render_template('guard.html', valid=valid, outpass=outpass if valid else None)
+    return render_template('guard.html', valid=valid, outpass=outpass, error=error)
+
+def process_qr_data(qr_data):
+    try:
+        op_id = int(qr_data.split(':')[-1].strip())
+        outpass = Outpass.query.get(op_id)
+        valid = outpass is not None and outpass.status == 'approved'
+        return render_template('guard.html', 
+                            valid=valid, 
+                            outpass=outpass if valid else None,
+                            error=None)
+    except (ValueError, IndexError) as e:
+        return render_template('guard.html', 
+                            valid=False, 
+                            outpass=None,
+                            error="Invalid QR Code Format")
 
 @app.route('/logout')
 @login_required
